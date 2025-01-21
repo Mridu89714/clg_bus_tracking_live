@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Bus Tracking</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    .bus-label {
+      background-color: red;
+      color: white;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-weight: bold;
+      font-size: 14px;
+      border: 2px solid #fff;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Live Bus Tracking</h1>
+    <div id="map"></div>
+
+    <% if (busNumber) { %> 
+      <h2>Bus <%= busNumber %> Dashboard</h2>
+      <p>Your bus is now being tracked. You can start sending location updates.</p>
+    <% } else { %> 
+      <h2>View Live Bus Locations</h2>
+      <p>All buses will appear on the map in real-time.</p>
+    <% } %>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script>
+    const socket = io();
+    const busNumber = "<%= busNumber %>";
+
+    const map = L.map('map').setView([20.5937, 78.9629], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const markers = {};
+
+    function createBusLabel(busNo) {
+      return L.divIcon({
+        html: `<div class="bus-label">${busNo}</div>`,
+        iconSize: [40, 40],
+        className: ''
+      });
+    }
+
+    socket.on('updateMap', (busLocations) => {
+      Object.keys(busLocations).forEach((bus) => {
+        const { lat, lon } = busLocations[bus];
+
+        if (markers[bus]) {
+          markers[bus].setLatLng([lat, lon]);
+        } else {
+          markers[bus] = L.marker([lat, lon], { icon: createBusLabel(bus) })
+            .addTo(map)
+            .bindPopup(`Bus ${bus}`);
+        }
+      });
+    });
+
+    <% if (busNumber) { %> <!-- If busNumber exists, this is a driver -->
+      function updateLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.watchPosition((position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            socket.emit('locationUpdate', { busNumber, lat, lon });
+
+            map.setView([lat, lon], 15);
+          });
+        } else {
+          alert("Geolocation is not supported by your browser.");
+        }
+      }
+
+      updateLocation();
+    <% } %>
+  </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Buses Live Map</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Live Bus Tracking for Students</h1>
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script>
+    const socket = io();
+    const map = L.map('map').setView([20.5937, 78.9629], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const markers = {};
+
+    function createBusLabel(busNo) {
+      return L.divIcon({
+        html: `<div class="bus-label">${busNo}</div>`,
+        iconSize: [40, 40],
+        className: ''
+      });
+    }
+
+    socket.on('updateMap', (busLocations) => {
+      Object.keys(markers).forEach((bus) => {
+        map.removeLayer(markers[bus]);
+      });
+
+      Object.keys(busLocations).forEach((bus) => {
+        const { lat, lon } = busLocations[bus];
+
+        if (markers[bus]) {
+          markers[bus].setLatLng([lat, lon]);
+        } else {
+          markers[bus] = L.marker([lat, lon], { icon: createBusLabel(bus) })
+            .addTo(map)
+            .bindPopup(`Bus ${bus}`);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
