@@ -30,6 +30,12 @@ app.post('/dashboard', (req, res) => {
   res.render('dashboard', { busNumber });
 });
 
+// New route for student_dashboard
+app.get('/studentdashboard', (req, res) => {
+  res.render('student_dashboard');
+});
+
+// Socket.IO connection
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
   socket.on('locationUpdate', (data) => {
@@ -42,7 +48,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// to start the server
+// Start the server
 server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
